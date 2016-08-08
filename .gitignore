@@ -1,0 +1,6 @@
+/build/*
+/debug*
+/dist/*
+/nbproject/*
+!/nbproject/configurations.xml
+!/nbproject/project.xml

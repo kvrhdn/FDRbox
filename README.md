@@ -6,8 +6,8 @@ Description
 ---
 This project is meant to simplify designing USB MIDI controllers with the Microchip [PIC16F1454](http://www.microchip.com/wwwproducts/en/PIC16F1454) and [PIC16F1455](http://www.microchip.com/wwwproducts/en/PIC16F1455).
 
-I chose for the PIC16F145x becaues it is the smallest MCU I found, capable of USB communication and that doesn't need an external oscillator. [The TSSOP-14 version is really small indeed...](http://i.imgur.com/X8IG8gG.jpg)  
-Additionally, Microchip sells PDIP version which are rather pleasant to prototype with.
+I chose the PIC16F145x becaues it is the smallest MCU I found capable of USB communication that doesn't need an external oscillator. [The TSSOP-14 version is really small indeed...](http://i.imgur.com/X8IG8gG.jpg)  
+Additionally, Microchip sells a PDIP version which is easy to prototype with.
 
 I made a small break-out board to experiment with this chip [[images](http://imgur.com/a/j5HQL)]. If there is interest, I am willing to post the KiCad files online or ship some of my spare PCBs.  
 I'm planning to use this project as base for other MIDI controllers I design.

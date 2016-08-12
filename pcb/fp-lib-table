@@ -1,0 +1,3 @@
+(fp_lib_table
+  (lib (name Bourns_PTA4543)(type KiCad)(uri "$(KIPRJMOD)/Bourns_PTA4543.pretty")(options "")(descr ""))
+)

@@ -32,11 +32,26 @@
  * 8 faders are connected to an analog 8:1 MUX.
  * Analog in is connected to RC2 (AN6).
  * Channels of MUX are connected to RC3 : RC5 : RA4 (MSB -> LSB)
+ * 
+ * The MUX needs a certain time to switch channel, this shouldn't take longer
+ * than 1 µSec (12 instructions at Fosc = 48 MHz). We assume this delay is
+ * already caused by the regular, no additional delay is implemented.
+ *																				// TODO test this
+ * Since the ADC has a bit of jitter in between measurements (which causes it to
+ * 'fluctuate' between two values), a 'filter' is applied:
+ * - a buffer is kept with the last couple of values
+ * - if the measured is already present in the buffer (recently transmitted),
+ *   the value is not transmitted.
+ * Experimentation found a buffer of 3 works very well.
+ * 
+ * Disadvantage: when changing direction, there is a jump of 3 values.
  */
 
 #ifndef _16F1455
 #error Switch configuration to PIC16F1455 pls
 #endif
+
+/***** I/O *****/
 
 #define FDR_AMT	8
 
@@ -44,14 +59,17 @@
 #define MUX_CH1	LATCbits.LATC5
 #define MUX_CH0	LATAbits.LATA4
 
-static uint8_t mux_channel = 0;
-
 #define AN_CH	6	// AN6 = RC2
 
-/* Input filtering:
- *  - values often jitter between 2-3 values
- *  - keep a buffer with previous samples
- *  - if already in buffer --> ignore											*/
+/***** MUX *****/
+
+static uint8_t mux_channel = 0;
+
+																				// TODO some useful macro's to switch channel?
+																				// how are we gonna do this grey code madness?
+
+/***** DATA *****/
+
 #define BUFFER_DEPTH	3
 
 typedef struct {
@@ -61,22 +79,27 @@ typedef struct {
 
 static ResultBuffer fdr_buffer[ FDR_AMT ];
 
+/***** MIDI *****/
+
 static MidiPacket packet = { CONTROL_CHANGE, 0, 0 };
 
 void main( void )
 {
 	system_initialize();
 
-	// Initialize control of MUX
+	// indicate that we are updating
+	led_set_rate( 500, 1000 );													// TODO is this necessary? this will be rather quick
+
+	// initialize control of MUX
 	TRISCbits.TRISC3 = 0;
 	TRISCbits.TRISC5 = 0;
 	TRISAbits.TRISA4 = 0;
-	MUX_CH0 = 0;
+	MUX_CH0 = 0;																// TODO
 	MUX_CH1 = 0;
 	MUX_CH2 = 0;
 	mux_channel = 0;
 
-	// Initialize ADC
+	// initialize ADC
 	TRISCbits.TRISC2 = 1;
 	ANSELCbits.ANSC2 = 1;
 
@@ -91,35 +114,34 @@ void main( void )
 	ADCON0bits.ADON = 1;	// enable ADC
 
 	// update entire fdr_buffer first
-
 	for ( uint8_t i = 0; i < FDR_AMT; ++i ) {
-		ADCON0bits.ADGO = 1;	// start conversion
+		ADCON0bits.ADGO = 1;		// start conversion
 
-		while ( ADCON0bits.ADGO )
+		while ( ADCON0bits.ADGO )	// block until done
 			system_tasks();
+
+		// switch channel
+																				// TODO write wrapper MACRO / function?
 
 		for ( uint8_t j = 0; j < BUFFER_DEPTH; ++j )
 			fdr_buffer[ i ].result[ j ] = ( ADRESH >> 1 );
 		fdr_buffer[ i ].last_updated = 0;
-
-		// update channel
-//		write wrapper MACRO / function?
-		break;
-
-		// wait 1 µSec
-//		use TMR here
 	}
+
+	led_set_idle();
+	ADCON0bits.ADGO = 1;
 
 	for (;;) {
 		system_tasks();
 
-		// TODO implement multiple faders and switching channels
-
-		if ( ! ADCON0bits.ADGO ) {	// conversion finished
+		if ( ! ADCON0bits.ADGO ) {	// conversion is done
 			ResultBuffer * fdr = &fdr_buffer[ mux_channel ];
 			uint8_t input = ( ADRESH >> 1 );
 
-			// scan previous samples for duplicates
+			// switch channel
+																				// TODO this has to happen in the real thing
+
+			// scan previous samples for duplicates (= filter)
 			uint8_t i = 0;
 			while ( i < BUFFER_DEPTH ) {
 				if ( fdr->result[ i ] == input )
@@ -138,11 +160,9 @@ void main( void )
 				midi_send( &packet, 1 );
 			}
 
-			// TODO
-			// increment channel
-			// activate waiting period
+			mux_channel = ( mux_channel + 1 ) % FDR_AMT;						// TODO
 
-			// restart ADC (after waiting period of ~1 µSec)
+			// restart conversion
 			ADCON0bits.ADGO = 1;
 		}
 	}

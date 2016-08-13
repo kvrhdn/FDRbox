@@ -10,7 +10,7 @@
  * 
  * RA0/RA1 are used for USB.
  * RA3 is used for MCLR with internal pull-up enabled.
- * RC4 is wired to the LED. Timer 0 is used by the LED.
+ * RC4 is wired to the LED. Timer2 is used by the LED.
  * 
  * General purpose I/O:
  * 

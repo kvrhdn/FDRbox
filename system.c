@@ -48,6 +48,11 @@ void system_initialize()
 
 	// Enable weak pull-ups
 	OPTION_REGbits.nWPUEN = 0;
+	// Disable analog inputs
+#ifdef _16F1455
+	ANSELAbits.ANSA4 = 0;
+	ANSELC = 0x00;
+#endif
 
 	// LED
 	led_initialize();

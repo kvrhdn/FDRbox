@@ -304,10 +304,10 @@ const struct{ uint8_t bLength; uint8_t bDscType; uint16_t string[23]; } sd001 = 
 };
 
 //Product string descriptor
-const struct{ uint8_t bLength; uint8_t bDscType; uint16_t string[8]; } sd002 = {
+const struct{ uint8_t bLength; uint8_t bDscType; uint16_t string[6]; } sd002 = {
 	sizeof(sd002),
 	USB_DESCRIPTOR_STRING,
-	{'M','I','D','I',' ','P','I','C'}
+	{'F','D','R','b','o','x'}
 };
 
 //Array of configuration descriptors

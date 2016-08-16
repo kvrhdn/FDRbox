@@ -36,9 +36,9 @@
  * The MUX needs a certain time to switch channel, this shouldn't take longer
  * than 1 µSec (12 instructions at Fosc = 48 MHz). We assume this delay is
  * already caused by the regular code, no additional delay is implemented.
- * Caution has to be taken to not restart the ADC directly after switching the 
+ * Caution has to be taken to not start conversion directly after switching the 
  * channel.
- *																				// TODO test this
+ *																				// TODO test performance
  * Since the ADC has a bit of jitter in between measurements (which causes it to
  * 'fluctuate' between two values), a 'filter' is applied:
  * - a buffer is kept with the last BUFFER_DEPTH values
@@ -46,6 +46,10 @@
  *   transmitted), the value is ignored.
  * Tests showed a buffer of 3 works very well.
  * Disadvantage: when changing direction, there is a jump of 3 values.
+ * Alternatives:
+ * - oversample and take average of last X samples --> slow response
+ * - use a moving average of the last samples --> slow response
+ *																				// TODO test alternatives
  */
 
 #ifndef _16F1455
@@ -94,8 +98,9 @@ void mux_initialize()
 	MUX_CH0 = 0;
 }
 
-/* Function wraps the actual hardware channels. If this function is called
- * FDR_AMT times every fader has been chosen once.
+/* Switch to the next channel. If this function is called FDR_AMT times every
+ * fader has been chosen once.
+ * Changes mux_channel.
  */
 inline static
 void mux_switch_next()
@@ -163,10 +168,6 @@ typedef struct {
 
 static ResultBuffer fdr_buffer[ FDR_AMT ];
 
-/***** MIDI *******************************************************************/
-
-static MidiPacket packet = { CONTROL_CHANGE, 0, 0 };
-
 /***** main *******************************************************************/
 
 void main( void )
@@ -176,7 +177,7 @@ void main( void )
 	// indicate that we are updating
 	led_set_rate( 500, 1000 );													// TODO is this necessary? this will be rather quick
 
-	// initialize mutiplexer
+	// initialize multiplexer
 	mux_initialize();
 
 	// initialize ADC
@@ -186,7 +187,7 @@ void main( void )
 	ADCON0bits.CHS = 6;	// RC2 = AN6
 	ADCON1 = 0x60;	/* A/D control register 1
 					 * 7	ADFM = 0 (left-justified, only need 7 bit)
-					 * 6:4	ADCS = 110 (Fosc / 64)
+					 * 6:4	ADCS = 110 (Fosc / 64)								// TODO test performance
 					 * 3:2	x
 					 * 1:0	PREF = 00 (Vref+ is connected to VDD)				*/
 //	ADCON2 = 0x00;	/* A/D control register 2
@@ -198,11 +199,12 @@ void main( void )
 	// update entire fdr_buffer first
 	for ( uint8_t i = 0; i < FDR_AMT; ++i ) {
 
-		while ( ADCON0bits.ADGO )	// block until conversion is done
+		while ( ADCON0bits.ADGO )	// block until conversion is done			// TODO necessary to call system_tasks()?
 			system_tasks();
 
 		uint8_t measurement = ( ADRESH >> 1 );
 		uint8_t fdr_measurement = mux_channel;
+
 		mux_switch_next();
 
 		for ( uint8_t j = 0; j < BUFFER_DEPTH; ++j )
@@ -239,8 +241,10 @@ void main( void )
 				fdr_buffer[ fdr_measurement ].last_updated = ( fdr_buffer[ fdr_measurement ].last_updated + 1 ) % BUFFER_DEPTH;
 
 				// send MIDI update
+				MidiPacket packet = { CONTROL_CHANGE, 0, 0 };
 				packet.key = fdr_measurement;
 				packet.value = measurement;
+
 				midi_send( &packet, 1 );
 			}
 
@@ -250,7 +254,7 @@ void main( void )
 	}
 }
 
-void midi_receive( MidiPacket packet[], uint8_t num )
+void midi_receive( MidiPacket packet[], uint8_t num )							// TODO possible to disable calling this function
 {
 	// ignore all incoming MIDI
 }

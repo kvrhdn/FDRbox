@@ -30,6 +30,7 @@ LIBS:atmel
 LIBS:contrib
 LIBS:valves
 LIBS:PIC16F145x
+LIBS:FDRbox-cache
 EELAYER 25 0
 EELAYER END
 $Descr A4 11693 8268
@@ -614,6 +615,6 @@ F 3 "" H 7600 4150 50  0000 C CNN
 	1    7600 4150
 	0    -1   -1   0   
 $EndComp
-Text Notes 6800 1800 0    60   ~ 0
-Faders are connected according to grey code.
+Text Notes 6900 1800 0    60   ~ 0
+Faders are connected according to grey code.\nFDR_6 and FDR_7, FDR_4 and FDR_5 have to be swapped.\nUse regular order in next revision.
 $EndSCHEMATC

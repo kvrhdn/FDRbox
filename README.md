@@ -6,6 +6,10 @@ Description
 ---
 A USB MIDI controller with 8 faders.
 
+PCB
+---
+[```pcb/```](pcb/) contains the schematics and design of the PCB. PCBs were designed using [KiCad](http://kicad-pcb.org/), an open-source software suite for EDA.
+
 Code
 ---
 [```code/```](code/) is a subtree of [PIC16F145x_MIDI](https://github.com/koenaad/PIC16F145x_MIDI).

@@ -38,18 +38,7 @@
  * already caused by the regular code, no additional delay is implemented.
  * Caution has to be taken to not start conversion directly after switching the 
  * channel.
- *																				// TODO test performance
- * Since the ADC has a bit of jitter in between measurements (which causes it to
- * 'fluctuate' between two values), a 'filter' is applied:
- * - a buffer is kept with the last BUFFER_DEPTH values
- * - if the measured is already present in the buffer (= has been recently
- *   transmitted), the value is ignored.
- * Tests showed a buffer of 3 works very well.
- * Disadvantage: when changing direction, there is a jump of 3 values.
- * Alternatives:
- * - oversample and take average of last X samples --> slow response
- * - use a moving average of the last samples --> slow response
- *																				// TODO test alternatives
+ * Since the ADC has some noise on the measurements, some filtering is applied.
  */
 
 #ifndef _16F1455
@@ -159,11 +148,32 @@ void mux_switch_next()
 
 /***** data *******************************************************************/
 
-#define BUFFER_DEPTH	3
+/* Since measurements sometimes fluctuate between two values, due to noise in
+ * the circuit or ADC, filtering is applied on the measurements.
+ * 
+ * There are two systems:
+ * 
+ *	-	every channel is sampled BUFFER_AVG times and the average is taken of
+ *		these samples. This stabilizes measurements.
+ *		If BUFFER_AVG is too high it will slow down updates considerately.
+ * 
+ *	-	a buffer is kept of the last BUFFER_DEPTH transmitted values. If a new
+ *		measurement is already present in the buffer, it is ignored since it was
+ *		recently transmitted. This suppresses fluctuating between two values
+ *		very efficiently.
+ *		If BUFFER_DEPTH is too high there is a large jump in values when
+ *		changing directions.
+ */
+
+#define BUFFER_AVG		2	// the amount of samples to average over, use a power of 2
+#define BUFFER_DEPTH	2	// the amount of last sent values to buffer
+
+static uint8_t avg_sum = 0;	// sum of averages, use uint16_t if BUFFER_AVG > 2
+static uint8_t avg_amt = 0;	// the amount of averages taken so far
 
 typedef struct {
-	uint8_t result[ BUFFER_DEPTH ];	// circular buffer
-	uint8_t last_updated;			// index of result[]
+	uint8_t result[ BUFFER_DEPTH ];	// circular buffer with last transmitted values
+	uint8_t last_updated;			// index in result[]
 } ResultBuffer;
 
 static ResultBuffer fdr_buffer[ FDR_AMT ];
@@ -189,9 +199,10 @@ void main( void )
 					 * 1:0	PREF = 00 (Vref+ is connected to VDD)				*/
 //	ADCON2 = 0x00;	/* A/D control register 2
 //					 * 6:4	TRIGSEL = 000 (no auto-conversion)					*/
+
 	ADCON0bits.ADON = 1;	// enable ADC
 
-	ADCON0bits.ADGO = 1;		// start first conversion
+	ADCON0bits.ADGO = 1;	// start first conversion
 
 	// update entire fdr_buffer first
 	for ( uint8_t i = 0; i < FDR_AMT; ++i ) {
@@ -216,30 +227,42 @@ void main( void )
 		system_tasks();
 
 		if ( ! ADCON0bits.ADGO ) {		// conversion is done
-			uint8_t measurement = ( ADRESH >> 1 );
-			uint8_t fdr_measurement = mux_channel;
 
-			mux_switch_next();
+			avg_sum += ( ADRESH >> 1 );
+			avg_amt += 1;
 
-			// scan previous samples for duplicates (= filter)
-			uint8_t i = 0;
-			while ( i < BUFFER_DEPTH ) {
-				if ( fdr_buffer[ fdr_measurement ].result[ i ] == measurement )
-					break;
-				++i;
-			}
+			if ( avg_amt == BUFFER_AVG ) {	// avg_sum has BUFFER_AVG samples
 
-			if ( i == BUFFER_DEPTH ) {	// input is not yet in ResultBuffer
-				// add to buffer
-				fdr_buffer[ fdr_measurement ].result[ fdr_buffer[ fdr_measurement ].last_updated ] = measurement;
-				fdr_buffer[ fdr_measurement ].last_updated = ( fdr_buffer[ fdr_measurement ].last_updated + 1 ) % BUFFER_DEPTH;
+				// switch to next channel already - give MUX time to settle
+				uint8_t fdr_measurement = mux_channel;
+				mux_switch_next();
 
-				// send MIDI update
-				MidiPacket packet = { CONTROL_CHANGE, 0, 0 };
-				packet.key = fdr_measurement;
-				packet.value = measurement;
+				// take average
+				avg_sum /= BUFFER_AVG;
 
-				midi_send( &packet, 1 );
+				// scan previous samples for recently transmitted values
+				uint8_t i = 0;
+				while ( i < BUFFER_DEPTH ) {
+					if ( fdr_buffer[ fdr_measurement ].result[ i ] == avg_sum )
+						break;
+					++i;
+				}
+
+				if ( i == BUFFER_DEPTH ) {	// input is not yet in ResultBuffer
+					// add to buffer
+					fdr_buffer[ fdr_measurement ].result[ fdr_buffer[ fdr_measurement ].last_updated ] = avg_sum;
+					fdr_buffer[ fdr_measurement ].last_updated = ( fdr_buffer[ fdr_measurement ].last_updated + 1 ) % BUFFER_DEPTH;
+
+					// send MIDI update
+					MidiPacket packet = { CONTROL_CHANGE, 0, 0 };
+					packet.key = fdr_measurement;
+					packet.value = avg_sum;
+
+					midi_send( &packet, 1 );	// no error handling, packet is dropped if transmission failed
+				}
+
+				avg_sum = 0;
+				avg_amt = 0;
 			}
 
 			// restart conversion
@@ -248,7 +271,7 @@ void main( void )
 	}
 }
 
-void midi_receive( MidiPacket packet[], uint8_t num )							// TODO possible to disable calling this function
+void midi_receive( MidiPacket packet[], uint8_t num )
 {
 	// ignore all incoming MIDI
 }

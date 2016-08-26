@@ -3,7 +3,7 @@ from _Framework.ControlSurface import ControlSurface
 from _Framework.InputControlElement import MIDI_CC_TYPE
 from _Framework.MixerComponent import MixerComponent
 
-MIDI_CHANNEL = 0    # has to be channel programmed in firmware
+MIDI_CHANNEL = 0    # has to match with channel programmed in firmware
 
 #   TODO
 #   combine multiple devices to control 16/24/32/... tracks

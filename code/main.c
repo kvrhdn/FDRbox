@@ -194,7 +194,7 @@ void main( void )
 	ADCON0bits.CHS = 6;	// RC2 = AN6
 	ADCON1 = 0x60;	/* A/D control register 1
 					 * 7	ADFM = 0 (left-justified, only need 7 bit)
-					 * 6:4	ADCS = 110 (Fosc / 64)								// TODO test performance
+					 * 6:4	ADCS = 110 (Fosc / 64)
 					 * 3:2	x
 					 * 1:0	PREF = 00 (Vref+ is connected to VDD)				*/
 //	ADCON2 = 0x00;	/* A/D control register 2
@@ -226,7 +226,7 @@ void main( void )
 	for (;;) {
 		system_tasks();
 
-		if ( ! ADCON0bits.ADGO ) {		// conversion is done
+		if ( ! ADCON0bits.ADGO ) {	// conversion is done
 
 			avg_sum += ( ADRESH >> 1 );
 			avg_amt += 1;

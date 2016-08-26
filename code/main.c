@@ -174,9 +174,6 @@ void main( void )
 {
 	system_initialize();
 
-	// indicate that we are updating
-	led_set_rate( 500, 1000 );													// TODO is this necessary? this will be rather quick
-
 	// initialize multiplexer
 	mux_initialize();
 
@@ -199,8 +196,7 @@ void main( void )
 	// update entire fdr_buffer first
 	for ( uint8_t i = 0; i < FDR_AMT; ++i ) {
 
-		while ( ADCON0bits.ADGO )	// block until conversion is done			// TODO necessary to call system_tasks()?
-			system_tasks();
+		while ( ADCON0bits.ADGO );	// block until conversion is done
 
 		uint8_t measurement = ( ADRESH >> 1 );
 		uint8_t fdr_measurement = mux_channel;
@@ -213,8 +209,6 @@ void main( void )
 
 		ADCON0bits.ADGO = 1;
 	}
-
-	led_set_idle();
 
 /***** main loop **************************************************************/
 

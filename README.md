@@ -10,6 +10,8 @@ PCB
 ---
 [```pcb/```](pcb/) contains the schematics and design of the PCB. The entire PCB was designed using [KiCad](http://kicad-pcb.org/), an open-source software suite for EDA.
 
+PDF's of the schematic are placed in [```pcb/output/```](pcb/output/).
+
 Code
 ---
 [```code/```](code/) is a subtree of [PIC16F145x_MIDI](https://github.com/koenaad/PIC16F145x_MIDI). Most controller specific code is in [```main.c```](code/main.c).

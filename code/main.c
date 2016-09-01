@@ -4,6 +4,8 @@
 #include "system.h"
 #include "usb_midi.h"
 
+// TODO get official VID+PID, currently using Microchip's VID. see usb_config.h
+
 /**
  * Overview of pins capabilities (only most common used peripherals).
  * Project works with PIC16F1454 and PIC16F1455. PIC16F1459 is not tested.

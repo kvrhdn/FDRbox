@@ -4,7 +4,7 @@
 #include "system.h"
 #include "usb_midi.h"
 
-// TODO get official VID+PID, currently using Microchip's VID. see usb_config.h
+// TODO get 'official' VID+PID, currently using Microchip's VID. see usb_config.h
 
 /**
  * Overview of pins capabilities (only most common used peripherals).
@@ -91,7 +91,7 @@ void mux_initialize()
 
 /* Switch to the next channel. If this function is called FDR_AMT times every
  * fader has been chosen once.
- * Changes mux_channel.
+ * Changes the variable mux_channel as well.
  */
 inline static
 void mux_switch_next()
@@ -157,7 +157,7 @@ void mux_switch_next()
  * 
  *	-	every channel is sampled BUFFER_AVG times and the average is taken of
  *		these samples. This stabilizes measurements.
- *		If BUFFER_AVG is too high it will slow down updates considerately.
+ *		If BUFFER_AVG is too high it will slow down updates.
  * 
  *	-	a buffer is kept of the last BUFFER_DEPTH transmitted values. If a new
  *		measurement is already present in the buffer, it is ignored since it was
@@ -251,7 +251,7 @@ void main( void )
 				}
 
 				if ( i == BUFFER_DEPTH ) {	// input is not yet in ResultBuffer
-					// add to buffer
+					// add to circular buffer
 					fdr_buffer[ fdr_measurement ].result[ fdr_buffer[ fdr_measurement ].last_updated ] = avg_sum;
 					fdr_buffer[ fdr_measurement ].last_updated = ( fdr_buffer[ fdr_measurement ].last_updated + 1 ) % BUFFER_DEPTH;
 

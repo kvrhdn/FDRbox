@@ -1,3 +1,6 @@
+# FDRbox: https://github.com/koenaad/FDRbox
+# by Koenraad Verheyden @koenaad
+
 from _Framework.ButtonElement import ButtonElement
 from _Framework.ControlSurface import ControlSurface
 from _Framework.InputControlElement import MIDI_CC_TYPE
